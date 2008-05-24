@@ -41,6 +41,11 @@
   (interactive)
   (kill-buffer (current-buffer)))
 
+(defun reddit-chomp (s)
+  (if (string-match "\\(.*\\)\n" s)
+      (match-string 1 s)
+    s))
+
 
 ;;;; Variables
 
@@ -202,11 +207,6 @@
                               ,@(when replies
                                   (reddit-comments-trees replies))))))
             (t (error "reddit-comments-tree: unknown kind: %s" kind))))))
-
-(defun reddit-chomp (s)
-  (if (string-match "\\(.*\\)\n" s)
-      (match-string 1 s)
-    s))
 
 (defun reddit-comment-body (body)
   (with-temp-buffer
