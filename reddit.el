@@ -1,0 +1,234 @@
+;;;; Reddit mode
+;;;
+;;; DEATH, 2008
+;;;               _     _ _ _                            _
+;;;  _ __ ___  __| | __| (_) |_      _ __ ___   ___   __| | ___
+;;; | '__/ _ \/ _` |/ _` | | __|____| '_ ` _ \ / _ \ / _` |/ _ \
+;;; | | |  __/ (_| | (_| | | ||_____| | | | | | (_) | (_| |  __/
+;;; |_|  \___|\__,_|\__,_|_|\__|    |_| |_| |_|\___/ \__,_|\___|
+;;;
+;;; A lot of stuff is missing:
+;;;
+;;; - login and everything made available by that
+;;;
+;;; - customization
+;;;
+;;; - subreddits
+;;;
+;;; - much more...
+;;;
+
+(require 'json)
+(require 'url)
+(require 'button)
+(require 'tree-mode)
+
+
+;;;; Utilities
+
+(defmacro reddit-alet (vars alist &rest forms)
+  (let ((alist-var (make-symbol "alist")))
+    `(let* ((,alist-var ,alist)
+            ,@(loop for var in vars
+                    collecting `(,var (assoc-default ',var ,alist-var))))
+       ,@forms)))
+
+(put 'reddit-alet 'lisp-indent-function 2)
+
+(defun reddit-kill-current-buffer ()
+  (interactive)
+  (kill-buffer (current-buffer)))
+
+
+;;;; Variables
+
+(defvar reddit-root "http://www.beta.reddit.com/r/programming"
+  "The URL prefix to use in all Reddit access.")
+
+(defvar reddit-entry-format "%N. %[%T%] (%D, %C comments)\n")
+
+
+;;;; Reddit mode
+
+(defun reddit ()
+  "Switch to Reddit buffer, creating it if necessary."
+  (interactive)
+  (cond ((get-buffer "*Reddit*")
+         (switch-to-buffer "*Reddit*"))
+        (t
+         (switch-to-buffer "*Reddit*")
+         (reddit-mode)
+         (reddit-refresh))))
+
+(defvar reddit-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map widget-keymap)
+    (define-key map "q" 'bury-buffer)
+    (define-key map "g" 'reddit-refresh)
+    (define-key map "c" 'reddit-comments)
+    map))
+
+(define-derived-mode reddit-mode nil "Reddit"
+  "Major mode for using Reddit."
+  (widen)
+  (setq buffer-read-only t)
+  (auto-save-mode 0))
+
+(defun reddit-parse ()
+  (goto-char (point-min))
+  (re-search-forward "^$")
+  (json-read))
+
+(defun reddit-refresh ()
+  (interactive)
+  (lexical-let ((buffer (current-buffer)))
+    (url-retrieve (concat reddit-root "/.json")
+                  (lambda (status)
+                    (url-mark-buffer-as-dead (current-buffer))
+                    (reddit-render (reddit-parse) buffer)
+                    (message "Refreshed.")))))
+
+(defun reddit-render (data buffer)
+  (let ((inhibit-read-only t))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (let ((kind (assoc-default 'kind data)))
+        (assert (equal "Listing" kind))
+        (let ((children (assoc-default 'children (car data))))
+          (loop for n from 0
+                for child across children
+                do (widget-create (reddit-make-entry child n)))))
+      (widget-setup)
+      (goto-char (point-min)))))
+
+(define-widget 'reddit-entry 'url-link
+  "A widget representing a Reddit entry."
+  :format-handler 'reddit-entry-format)
+
+(defun reddit-make-entry (data n)
+  (let ((kind (assoc-default 'kind data)))
+    (assert (equal "t3" kind))
+    (reddit-alet (ups saved hidden id likes score created title downs
+                      num_comments url author name clicked domain)
+        (assoc-default 'data data)
+      (list 'reddit-entry
+            :format reddit-entry-format
+            :value url
+            :help-echo url
+            :tab-order n
+            :reddit-title title
+            :reddit-id id
+            :reddit-n n
+            :reddit-domain domain
+            :reddit-score score
+            :reddit-author author
+            :reddit-num-comments num_comments))))
+
+(defun reddit-entry-format (widget char)
+  (case char
+    (?N (insert (format "%2d" (1+ (widget-get widget :reddit-n)))))
+    (?D (insert (widget-get widget :reddit-domain)))
+    (?T (insert (truncate-string-to-width (widget-get widget :reddit-title) 80 nil nil t)))
+    (?S (insert (format "%d" (widget-get widget :reddit-score))))
+    (?A (insert (widget-get widget :reddit-author)))
+    (?C (insert (format "%d" (widget-get widget :reddit-num-comments))))
+    (t (widget-default-format-handler widget char))))
+
+
+;;;; Reddit Comments mode
+                    
+(defun reddit-comments ()
+  (interactive)
+  (let ((widget (widget-at)))
+    (when widget
+      (let ((start (widget-field-start widget))
+            (end (widget-field-end widget)))
+        (message (format "field: %s %s" start end)))
+      (reddit-new-comments-buffer (widget-get widget :reddit-id)))))
+
+(define-derived-mode reddit-comments-mode tree-mode "Reddit Comments"
+  (widen)
+  (setq buffer-read-only t)
+  (auto-save-mode 0))
+
+(define-key reddit-comments-mode-map "q" 'reddit-kill-current-buffer)
+(define-key reddit-comments-mode-map "g" 'reddit-comments-refresh)
+
+(defvar reddit-id nil)
+
+(defun reddit-new-comments-buffer (id)
+  (with-current-buffer (get-buffer-create (format "*Reddit Comments %s*" id))
+    (reddit-comments-mode)
+    (switch-to-buffer (current-buffer))
+    (set (make-local-variable 'reddit-id) id)
+    (reddit-comments-refresh)))
+
+(defun reddit-comments-refresh ()
+  (interactive)
+  (lexical-let ((buffer (current-buffer)))
+    (url-retrieve (concat reddit-root "/info/" reddit-id "/comments/.json")
+                  (lambda (status)
+                    (url-mark-buffer-as-dead (current-buffer))
+                    (reddit-comments-render (reddit-parse) buffer)
+                    (message "Refreshed.")))))
+
+(defun reddit-comments-render (data buffer)
+  (with-current-buffer buffer
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      ;; The first element of data contains the reddit entry.  The
+      ;; second element of data contains all the comments.
+      (let* ((data (assoc-default 'data (aref data 1)))
+             (children (assoc-default 'children data))
+             (trees (reddit-comments-trees children)))
+        (dolist (tree trees)
+          (tree-mode-expand-level-1 (tree-mode-insert tree) -1)))
+      (goto-char (point-min)))))
+
+(defun reddit-comments-trees (data)
+  (if (arrayp data)
+      (loop for x across data
+            appending (reddit-comments-trees x))
+    (let ((kind (assoc-default 'kind data)))
+      (cond ((equal "Listing" kind)
+             (reddit-comments-trees (assoc-default 'children (assoc-default 'data data) nil [])))
+            ((equal "t1" kind)
+             (reddit-alet (ups replies likes id author downs created name body)
+                 (assoc-default 'data data)
+               `((tree-widget :node (push-button :tag ,author :format "%t\n")
+                              ,@(reddit-comment-body body)
+                              ,@(when replies
+                                  (reddit-comments-trees replies))))))
+            (t (error "reddit-comments-tree: unknown kind: %s" kind))))))
+
+(defun reddit-chomp (s)
+  (if (string-match "\\(.*\\)\n" s)
+      (match-string 1 s)
+    s))
+
+(defun reddit-comment-body (body)
+  (with-temp-buffer
+    (insert body)
+    (goto-char (point-min))
+    (while (search-forward "\r" nil t)
+      (replace-match "\n" nil t))
+    (fill-region (point-min) (point-max))
+    (goto-char (point-min))
+    (let ((widgets '())
+          (blank nil))
+      (while (not (eobp))
+        (let ((line (concat (reddit-chomp (thing-at-point 'line)))))
+          (cond ((equal "" line)
+                 (setq blank t))
+                (t
+                 (when blank
+                   (push `(text "") widgets)
+                   (setq blank nil))
+                 (push `(text ,line) widgets))))
+        (forward-line))
+      (nreverse widgets))))
+
+
+;;;; Finally...
+
+(provide 'reddit-mode)
