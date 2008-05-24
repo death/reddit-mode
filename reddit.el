@@ -25,6 +25,14 @@
 (require 'tree-mode)
 
 
+;;;; Variables
+
+(defvar reddit-root "http://www.beta.reddit.com/r/programming"
+  "The URL prefix to use in all Reddit access.")
+
+(defvar reddit-entry-format "%N. %[%T%] (%D, %C comments)\n")
+
+
 ;;;; Utilities
 
 (defmacro reddit-alet (vars alist &rest forms)
@@ -45,13 +53,10 @@
       (match-string 1 s)
     s))
 
-
-;;;; Variables
-
-(defvar reddit-root "http://www.beta.reddit.com/r/programming"
-  "The URL prefix to use in all Reddit access.")
-
-(defvar reddit-entry-format "%N. %[%T%] (%D, %C comments)\n")
+(defun reddit-parse ()
+  (goto-char (point-min))
+  (re-search-forward "^$")
+  (json-read))
 
 
 ;;;; Reddit mode
@@ -80,19 +85,16 @@
   (setq buffer-read-only t)
   (auto-save-mode 0))
 
-(defun reddit-parse ()
-  (goto-char (point-min))
-  (re-search-forward "^$")
-  (json-read))
-
 (defun reddit-refresh ()
   (interactive)
-  (lexical-let ((buffer (current-buffer)))
-    (url-retrieve (concat reddit-root "/.json")
-                  (lambda (status)
-                    (url-mark-buffer-as-dead (current-buffer))
-                    (reddit-render (reddit-parse) buffer)
-                    (message "Refreshed.")))))
+  (url-retrieve (concat reddit-root "/.json")
+                'reddit-refresh-cb
+                (list (current-buffer))))
+
+(defun reddit-refresh-cb (status buffer)
+  (url-mark-buffer-as-dead (current-buffer))
+  (reddit-render (reddit-parse) buffer)
+  (message "Refreshed."))
 
 (defun reddit-render (data buffer)
   (let ((inhibit-read-only t))
@@ -147,9 +149,6 @@
   (interactive)
   (let ((widget (widget-at)))
     (when widget
-      (let ((start (widget-field-start widget))
-            (end (widget-field-end widget)))
-        (message (format "field: %s %s" start end)))
       (reddit-new-comments-buffer (widget-get widget :reddit-id)))))
 
 (define-derived-mode reddit-comments-mode tree-mode "Reddit Comments"
@@ -171,12 +170,14 @@
 
 (defun reddit-comments-refresh ()
   (interactive)
-  (lexical-let ((buffer (current-buffer)))
-    (url-retrieve (concat reddit-root "/info/" reddit-id "/comments/.json")
-                  (lambda (status)
-                    (url-mark-buffer-as-dead (current-buffer))
-                    (reddit-comments-render (reddit-parse) buffer)
-                    (message "Refreshed.")))))
+  (url-retrieve (concat reddit-root "/info/" reddit-id "/comments/.json")
+                'reddit-comments-refresh-cb
+                (list (current-buffer))))
+
+(defun reddit-comments-refresh-cb (status buffer)
+  (url-mark-buffer-as-dead (current-buffer))
+  (reddit-comments-render (reddit-parse) buffer)
+  (message "Refreshed."))
 
 (defun reddit-comments-render (data buffer)
   (with-current-buffer buffer
