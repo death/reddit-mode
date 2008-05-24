@@ -22,7 +22,6 @@
 (require 'thingatpt)
 (require 'json)
 (require 'url)
-(require 'button)
 (require 'tree-mode)
 
 
