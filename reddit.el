@@ -9,12 +9,14 @@
 ;;;
 ;;; A lot of stuff is missing:
 ;;;
-;;; - login and everything made available by that
-;;;
-;;; - customization
-;;;
+;;; - posting comments
+;;; - submitting urls
+;;; - user pages
+;;; - user preferences
 ;;; - subreddits
-;;;
+;;; - search
+;;; - customization
+;;; - documentation
 ;;; - much more...
 ;;;
 
@@ -27,10 +29,14 @@
 
 ;;;; Variables
 
-(defvar reddit-root "http://www.beta.reddit.com/r/programming"
-  "The URL prefix to use in all Reddit access.")
+(defvar reddit-root "http://www.beta.reddit.com/r/programming")
+(defvar reddit-login-url "http://reddit.com/api/login")
+(defvar reddit-login-subreddit "programming")
 
 (defvar reddit-entry-format "%N. %[%T%] (%D, %C comments)\n")
+
+(defvar reddit-user nil)
+(defvar reddit-password nil)
 
 
 ;;;; Utilities
@@ -58,6 +64,43 @@
   (re-search-forward "^$")
   (json-read))
 
+(defun reddit-format-request-data (alist)
+  (with-temp-buffer
+    (loop for delim = "" then "&"
+          for (key . value) in alist
+          do (insert delim key "=" value))
+    (buffer-string)))
+
+
+;;;; Login
+
+(defun reddit-login (&optional user password)
+  (interactive)
+  (when (null user)
+    (setq user (read-from-minibuffer "User: " nil nil nil nil reddit-user)))
+  (when (null password)
+    (setq password (read-passwd "Password: " nil reddit-password)))
+  (let ((url-request-method "POST")
+        (url-request-data
+         (reddit-format-request-data
+          `(("uh" . "")
+            ("op" . "login_main")
+            ("user_login" . ,user)
+            ("passwd_login" . ,password)
+            ("r" . ,reddit-login-subreddit)
+            ("_" . "")))))
+    (with-current-buffer (url-retrieve-synchronously reddit-login-url)
+      (reddit-login-cb '()))))
+
+(defun reddit-login-cb (status)
+  (url-mark-buffer-as-dead (current-buffer))
+  (let* ((data (reddit-parse))
+         (error (assoc-default 'error data)))
+    (if error
+        (message "Problem with login: %s"
+                 (assoc-default 'message error nil "<no message>"))
+      (message "Login successful."))))
+
 
 ;;;; Reddit mode
 
@@ -69,6 +112,8 @@
         (t
          (switch-to-buffer "*Reddit*")
          (reddit-mode)
+         (when reddit-user
+           (reddit-login reddit-user reddit-password))
          (reddit-refresh))))
 
 (defvar reddit-mode-map
@@ -77,6 +122,7 @@
     (define-key map "q" 'bury-buffer)
     (define-key map "g" 'reddit-refresh)
     (define-key map "c" 'reddit-comments)
+    (define-key map "L" 'reddit-login)
     map))
 
 (define-derived-mode reddit-mode nil "Reddit"
