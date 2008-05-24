@@ -18,6 +18,8 @@
 ;;; - much more...
 ;;;
 
+(require 'cl)
+(require 'thingatpt)
 (require 'json)
 (require 'url)
 (require 'button)
