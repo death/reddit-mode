@@ -153,8 +153,7 @@
 (defun reddit-refresh-cb (status buffer)
   (url-mark-buffer-as-dead (current-buffer))
   (reddit-check-status status)
-  (reddit-render (reddit-parse) buffer)
-  (message "Refreshed"))
+  (reddit-render (reddit-parse) buffer))
 
 (defun reddit-render (data buffer)
   (let ((inhibit-read-only t))
@@ -167,7 +166,8 @@
                 for child across children
                 do (widget-create (reddit-make-entry child n)))))
       (widget-setup)
-      (goto-char (point-min)))))
+      (goto-char (point-min))))
+  (message "Got entries"))
 
 (define-widget 'reddit-entry 'url-link
   "A widget representing a Reddit entry."
@@ -237,8 +237,7 @@
 (defun reddit-comments-refresh-cb (status buffer)
   (url-mark-buffer-as-dead (current-buffer))
   (reddit-check-status status)
-  (reddit-comments-render (reddit-parse) buffer)
-  (message "Refreshed"))
+  (reddit-comments-render (reddit-parse) buffer))
 
 (defun reddit-comments-render (data buffer)
   (with-current-buffer buffer
@@ -246,12 +245,16 @@
       (erase-buffer)
       ;; The first element of data contains the reddit entry.  The
       ;; second element of data contains all the comments.
-      (let* ((data (assoc-default 'data (aref data 1)))
-             (children (assoc-default 'children data))
-             (trees (reddit-comments-trees children)))
-        (dolist (tree trees)
-          (tree-mode-expand-level-1 (tree-mode-insert tree) -1)))
-      (goto-char (point-min)))))
+      (if (or (not (arrayp data))
+              (< (length data) 2))
+          (error "Weird data: %s" data)
+        (let* ((data (assoc-default 'data (aref data 1)))
+               (children (assoc-default 'children data))
+               (trees (reddit-comments-trees children)))
+          (dolist (tree trees)
+            (tree-mode-expand-level-1 (tree-mode-insert tree) -1))
+          (goto-char (point-min))
+          (message "Got comments"))))))
 
 (defun reddit-comments-trees (data)
   (if (arrayp data)
