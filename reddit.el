@@ -50,6 +50,10 @@
 (defvar reddit-entry-id nil)
 (defvar reddit-parent-id nil)
 
+(defvar reddit-kind-listing "Listing")
+(defvar reddit-kind-comment "t1")
+(defvar reddit-kind-entry "t3")
+
 
 ;;;; Utilities
 
@@ -200,7 +204,7 @@
     (with-current-buffer buffer
       (erase-buffer)
       (let ((kind (assoc-default 'kind data)))
-        (assert (equal "Listing" kind))
+        (assert (equal reddit-kind-listing kind))
         (let ((children (assoc-default 'children (car data))))
           (loop for n from 0
                 for child across children
@@ -215,7 +219,7 @@
 
 (defun reddit-make-entry (data n)
   (let ((kind (assoc-default 'kind data)))
-    (assert (equal "t3" kind))
+    (assert (equal reddit-kind-entry kind))
     (reddit-alet (ups saved hidden id likes score created title downs
                       num_comments url author name clicked domain)
         (assoc-default 'data data)
@@ -307,9 +311,9 @@
       (loop for x across data
             appending (reddit-comments-trees x))
     (let ((kind (assoc-default 'kind data)))
-      (cond ((equal "Listing" kind)
+      (cond ((equal reddit-kind-listing kind)
              (reddit-comments-trees (assoc-default 'children (assoc-default 'data data) nil [])))
-            ((equal "t1" kind)
+            ((equal reddit-kind-comment kind)
              (reddit-alet (ups replies likes id author downs created name body)
                  (assoc-default 'data data)
                `((reddit-comment-widget
@@ -385,8 +389,9 @@
   (destructuring-bind (type parent-id) reddit-parent-id
     (let ((modhash (reddit-modhash entry-id))
           (id-string (concat (ecase type
-                               (comment "t1_")
-                               (entry "t3_"))
+                               (comment reddit-kind-comment)
+                               (entry reddit-kind-entry))
+                             "_"
                              parent-id))
           (comment (url-hexify-string (buffer-string))))
       (url-mark-buffer-as-dead
