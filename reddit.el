@@ -84,7 +84,7 @@
 (defun reddit-login (&optional user password)
   (interactive)
   (when (null user)
-    (setq user (read-from-minibuffer "User: " nil nil nil nil reddit-user)))
+    (setq user (read-string "User: " nil nil reddit-user)))
   (when (null password)
     (setq password (read-passwd "Password: " nil reddit-password)))
   (let ((url-request-method "POST")
