@@ -59,9 +59,12 @@
 
 (put 'reddit-alet 'lisp-indent-function 2)
 
-(defun reddit-kill-current-buffer ()
+(defun reddit-kill ()
   (interactive)
-  (kill-buffer (current-buffer)))
+  (let ((buffer (current-buffer)))
+    (unless (one-window-p)
+      (delete-window))
+    (kill-buffer buffer)))
 
 (defun reddit-chomp (s)
   (if (string-match "\\(.*\\)\n" s)
@@ -235,7 +238,7 @@
   (setq buffer-read-only t)
   (auto-save-mode 0))
 
-(define-key reddit-comments-mode-map "q" 'reddit-kill-current-buffer)
+(define-key reddit-comments-mode-map "q" 'reddit-kill)
 (define-key reddit-comments-mode-map "g" 'reddit-comments-refresh)
 
 (defun reddit-comments-new-buffer (id)
