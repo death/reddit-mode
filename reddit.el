@@ -297,4 +297,4 @@
 
 ;;;; Finally...
 
-(provide 'reddit-mode)
+(provide 'reddit)
