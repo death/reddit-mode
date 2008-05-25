@@ -37,8 +37,6 @@
 ;;;; Variables
 
 (defvar reddit-root "http://www.beta.reddit.com/r/programming")
-(defvar reddit-login-url "http://reddit.com/api/login")
-(defvar reddit-login-subreddit "programming")
 (defvar reddit-api-root "http://reddit.com/api")
 (defvar reddit-site "programming")
 
@@ -114,27 +112,19 @@
     (setq user (read-string "User: " nil nil reddit-user)))
   (when (null password)
     (setq password (read-passwd "Password: " nil reddit-password)))
-  (let ((url-request-method "POST")
-        (url-request-data
-         (reddit-format-request-data
-          `(("uh" . "")
-            ("op" . "login_main")
-            ("user_login" . ,user)
-            ("passwd_login" . ,password)
-            ("r" . ,reddit-login-subreddit)
-            ("_" . "")))))
-    (with-current-buffer (url-retrieve-synchronously reddit-login-url)
-      (reddit-login-cb '()))))
-
-(defun reddit-login-cb (status)
-  (url-mark-buffer-as-dead (current-buffer))
-  (reddit-check-status status)
-  (let* ((data (reddit-parse))
-         (error (assoc-default 'error data)))
-    (if error
-        (error "Problem with login: %s"
-               (assoc-default 'message error nil "<no message>"))
-      (message "Login successful"))))
+  (with-current-buffer
+      (reddit-api "login"
+                  `(("uh" . "")
+                    ("op" . "login_main")
+                    ("user_login" . ,user)
+                    ("passwd_login" . ,password)))
+    (url-mark-buffer-as-dead (current-buffer))
+    (let* ((data (reddit-parse))
+           (error (assoc-default 'error data)))
+      (if error
+          (error "Problem with login: %s"
+                 (assoc-default 'message error nil "<no message>"))
+        (message "Login successful")))))
 
 
 ;;;; Reddit mode
