@@ -9,14 +9,21 @@
 ;;;
 ;;; A lot of stuff is missing:
 ;;;
-;;; - posting comments
-;;; - submitting urls
+;;; - logout
+;;; - markdown
+;;; - posting comments (incl. edit/delete)
+;;; - submitting urls (incl. delete)
+;;; - voting urls/comments
+;;; - saving links
+;;; - other pages (e.g. what's new/browse/saved/recommended/stats/blog)
 ;;; - user pages
 ;;; - user preferences
 ;;; - subreddits
 ;;; - search
 ;;; - customization
 ;;; - documentation
+;;; - menus
+;;; - error checking
 ;;; - much more...
 ;;;
 
@@ -99,7 +106,7 @@
     (if error
         (message "Problem with login: %s"
                  (assoc-default 'message error nil "<no message>"))
-      (message "Login successful."))))
+      (message "Login successful"))))
 
 
 ;;;; Reddit mode
@@ -140,7 +147,7 @@
 (defun reddit-refresh-cb (status buffer)
   (url-mark-buffer-as-dead (current-buffer))
   (reddit-render (reddit-parse) buffer)
-  (message "Refreshed."))
+  (message "Refreshed"))
 
 (defun reddit-render (data buffer)
   (let ((inhibit-read-only t))
@@ -195,7 +202,7 @@
   (interactive)
   (let ((widget (widget-at)))
     (when widget
-      (reddit-new-comments-buffer (widget-get widget :reddit-id)))))
+      (reddit-comments-new-buffer (widget-get widget :reddit-id)))))
 
 (define-derived-mode reddit-comments-mode tree-mode "Reddit Comments"
   (widen)
@@ -207,7 +214,7 @@
 
 (defvar reddit-id nil)
 
-(defun reddit-new-comments-buffer (id)
+(defun reddit-comments-new-buffer (id)
   (with-current-buffer (get-buffer-create (format "*Reddit Comments %s*" id))
     (reddit-comments-mode)
     (switch-to-buffer (current-buffer))
@@ -223,7 +230,7 @@
 (defun reddit-comments-refresh-cb (status buffer)
   (url-mark-buffer-as-dead (current-buffer))
   (reddit-comments-render (reddit-parse) buffer)
-  (message "Refreshed."))
+  (message "Refreshed"))
 
 (defun reddit-comments-render (data buffer)
   (with-current-buffer buffer
@@ -249,12 +256,12 @@
              (reddit-alet (ups replies likes id author downs created name body)
                  (assoc-default 'data data)
                `((tree-widget :node (push-button :tag ,author :format "%t\n")
-                              ,@(reddit-comment-body body)
+                              ,@(reddit-comments-body-widgets body)
                               ,@(when replies
                                   (reddit-comments-trees replies))))))
-            (t (error "reddit-comments-tree: unknown kind: %s" kind))))))
+            (t (error "reddit-comments-trees: unknown kind: %s" kind))))))
 
-(defun reddit-comment-body (body)
+(defun reddit-comments-body-widgets (body)
   (with-temp-buffer
     (insert body)
     (goto-char (point-min))
