@@ -36,7 +36,7 @@
 
 ;;;; Variables
 
-(defvar reddit-root "http://www.beta.reddit.com/r/programming")
+(defvar reddit-root "http://www.beta.reddit.com")
 (defvar reddit-api-root "http://reddit.com/api")
 (defvar reddit-site "programming")
 
@@ -126,6 +126,11 @@
                  (assoc-default 'message error nil "<no message>"))
         (message "Login successful")))))
 
+(defun reddit-site-root ()
+  (if reddit-site
+      (concat reddit-root "/r/" reddit-site)
+    reddit-root))
+
 
 ;;;; Reddit mode
 
@@ -158,7 +163,7 @@
 
 (defun reddit-refresh ()
   (interactive)
-  (url-retrieve (concat reddit-root "/.json")
+  (url-retrieve (concat (reddit-site-root) "/.json")
                 'reddit-refresh-cb
                 (list (current-buffer))))
 
@@ -242,7 +247,7 @@
 
 (defun reddit-comments-refresh ()
   (interactive)
-  (url-retrieve (concat reddit-root "/info/" reddit-id "/comments/.json")
+  (url-retrieve (concat (reddit-site-root) "/info/" reddit-id "/comments/.json")
                 'reddit-comments-refresh-cb
                 (list (current-buffer))))
 
