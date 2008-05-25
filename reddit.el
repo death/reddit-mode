@@ -71,11 +71,6 @@
     (destructuring-bind (sym . data) (cadr status)
       (signal sym data))))
 
-(defun reddit-parse ()
-  (goto-char (point-min))
-  (re-search-forward "^$")
-  (json-read))
-
 (defun reddit-format-request-data (alist)
   (with-temp-buffer
     (loop for delim = "" then "&"
@@ -84,7 +79,12 @@
     (buffer-string)))
 
 
-;;;; Login
+;;;; Reddit-specific utilities
+
+(defun reddit-parse ()
+  (goto-char (point-min))
+  (re-search-forward "^$")
+  (json-read))
 
 (defun reddit-login (&optional user password)
   (interactive)
@@ -283,7 +283,7 @@
     (let ((widgets '())
           (blank nil))
       (while (not (eobp))
-        (let ((line (concat (reddit-chomp (thing-at-point 'line)))))
+        (let ((line (reddit-chomp (thing-at-point 'line))))
           (cond ((equal "" line)
                  (setq blank t))
                 (t
