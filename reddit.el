@@ -273,6 +273,12 @@
           (goto-char (point-min))
           (message "Got comments"))))))
 
+(define-widget 'reddit-comment-widget 'tree-widget
+  "A widget representing a Reddit comment.")
+
+(define-widget 'reddit-comment-line-widget 'text
+  "A widget representing a Reddit comment's line.")
+
 (defun reddit-comments-trees (data)
   (if (arrayp data)
       (loop for x across data
@@ -283,10 +289,11 @@
             ((equal "t1" kind)
              (reddit-alet (ups replies likes id author downs created name body)
                  (assoc-default 'data data)
-               `((tree-widget :node (push-button :tag ,author :format "%t\n")
-                              ,@(reddit-comments-body-widgets body)
-                              ,@(when replies
-                                  (reddit-comments-trees replies))))))
+               `((reddit-comment-widget
+                  :node (push-button :tag ,author :format "%t\n")
+                  ,@(reddit-comments-body-widgets body)
+                  ,@(when replies
+                      (reddit-comments-trees replies))))))
             (t (error "reddit-comments-trees: unknown kind: %s" kind))))))
 
 (defun reddit-comments-body-widgets (body)
@@ -305,9 +312,9 @@
                  (setq blank t))
                 (t
                  (when blank
-                   (push `(text "") widgets)
+                   (push `(reddit-comment-line-widget "") widgets)
                    (setq blank nil))
-                 (push `(text ,line) widgets))))
+                 (push `(reddit-comment-line-widget ,line) widgets))))
         (forward-line))
       (nreverse widgets))))
 
