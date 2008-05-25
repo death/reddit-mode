@@ -66,6 +66,11 @@
       (match-string 1 s)
     s))
 
+(defun reddit-check-status (status)
+  (when (eq (car status) :error)
+    (destructuring-bind (sym . data) (cadr status)
+      (signal sym data))))
+
 (defun reddit-parse ()
   (goto-char (point-min))
   (re-search-forward "^$")
@@ -101,6 +106,7 @@
 
 (defun reddit-login-cb (status)
   (url-mark-buffer-as-dead (current-buffer))
+  (reddit-check-status status)
   (let* ((data (reddit-parse))
          (error (assoc-default 'error data)))
     (if error
@@ -146,6 +152,7 @@
 
 (defun reddit-refresh-cb (status buffer)
   (url-mark-buffer-as-dead (current-buffer))
+  (reddit-check-status status)
   (reddit-render (reddit-parse) buffer)
   (message "Refreshed"))
 
@@ -229,6 +236,7 @@
 
 (defun reddit-comments-refresh-cb (status buffer)
   (url-mark-buffer-as-dead (current-buffer))
+  (reddit-check-status status)
   (reddit-comments-render (reddit-parse) buffer)
   (message "Refreshed"))
 
