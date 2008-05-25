@@ -39,6 +39,8 @@
 (defvar reddit-root "http://www.beta.reddit.com/r/programming")
 (defvar reddit-login-url "http://reddit.com/api/login")
 (defvar reddit-login-subreddit "programming")
+(defvar reddit-api-root "http://reddit.com/api")
+(defvar reddit-site "programming")
 
 (defvar reddit-entry-format "%N. %[%T%] (%D, %C comments)\n")
 
@@ -85,6 +87,26 @@
   (goto-char (point-min))
   (re-search-forward "^$")
   (json-read))
+
+(defun reddit-api (op data)
+  (let* ((url-request-method "POST")
+         (url-request-data
+          (reddit-format-request-data
+           (append data
+                   `(("r" . ,(or reddit-site "%20reddit.com"))
+                     ("_" . "")))))
+         (buffer (url-retrieve-synchronously (concat reddit-api-root "/" op))))
+    (when (null buffer)
+      (error "Reddit API call for '%s' failed" op))
+    (with-current-buffer buffer
+      (save-excursion
+        (let ((code (url-http-parse-response)))
+          (case code
+            (200)
+            (t
+             (url-mark-buffer-as-dead buffer)
+             (error "Reddit API call for '%s' failed with code %d" op code))))))
+    buffer))
 
 (defun reddit-login (&optional user password)
   (interactive)
