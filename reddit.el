@@ -45,6 +45,8 @@
 (defvar reddit-user nil)
 (defvar reddit-password nil)
 
+(defvar reddit-entry-id nil)
+
 
 ;;;; Utilities
 
@@ -202,7 +204,7 @@
             :help-echo url
             :tab-order n
             :reddit-title title
-            :reddit-id id
+            :reddit-entry-id id
             :reddit-n n
             :reddit-domain domain
             :reddit-score score
@@ -226,7 +228,7 @@
   (interactive)
   (let ((widget (widget-at)))
     (when widget
-      (reddit-comments-new-buffer (widget-get widget :reddit-id)))))
+      (reddit-comments-new-buffer (widget-get widget :reddit-entry-id)))))
 
 (define-derived-mode reddit-comments-mode tree-mode "Reddit Comments"
   (widen)
@@ -236,18 +238,16 @@
 (define-key reddit-comments-mode-map "q" 'reddit-kill-current-buffer)
 (define-key reddit-comments-mode-map "g" 'reddit-comments-refresh)
 
-(defvar reddit-id nil)
-
 (defun reddit-comments-new-buffer (id)
   (with-current-buffer (get-buffer-create (format "*Reddit Comments %s*" id))
     (reddit-comments-mode)
     (switch-to-buffer (current-buffer))
-    (set (make-local-variable 'reddit-id) id)
+    (set (make-local-variable 'reddit-entry-id) id)
     (reddit-comments-refresh)))
 
 (defun reddit-comments-refresh ()
   (interactive)
-  (url-retrieve (concat (reddit-site-root) "/info/" reddit-id "/comments/.json")
+  (url-retrieve (concat (reddit-site-root) "/info/" reddit-entry-id "/comments/.json")
                 'reddit-comments-refresh-cb
                 (list (current-buffer))))
 
