@@ -104,8 +104,8 @@
   (let* ((data (reddit-parse))
          (error (assoc-default 'error data)))
     (if error
-        (message "Problem with login: %s"
-                 (assoc-default 'message error nil "<no message>"))
+        (error "Problem with login: %s"
+               (assoc-default 'message error nil "<no message>"))
       (message "Login successful"))))
 
 
