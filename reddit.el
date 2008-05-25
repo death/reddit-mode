@@ -11,7 +11,7 @@
 ;;;
 ;;; - logout
 ;;; - markdown
-;;; - posting comments (incl. edit/delete)
+;;; - comments: edit/delete
 ;;; - submitting urls (incl. delete)
 ;;; - voting urls/comments
 ;;; - saving links
@@ -31,7 +31,9 @@
 (require 'thingatpt)
 (require 'json)
 (require 'url)
+(require 'url-http)
 (require 'tree-mode)
+(require 'markdown-mode)
 
 
 ;;;; Variables
@@ -46,6 +48,7 @@
 (defvar reddit-password nil)
 
 (defvar reddit-entry-id nil)
+(defvar reddit-parent-id nil)
 
 
 ;;;; Utilities
@@ -135,6 +138,21 @@
   (if reddit-site
       (concat reddit-root "/r/" reddit-site)
     reddit-root))
+
+(defun reddit-comments-site-root (entry-id)
+  (concat (reddit-site-root) "/info/" entry-id "/comments"))
+
+(defun reddit-modhash (entry-id)
+  ;; Ugly, ugly hack
+  (let ((modhash (with-current-buffer
+                     (url-retrieve-synchronously (reddit-comments-site-root entry-id))
+                   (url-mark-buffer-as-dead (current-buffer))
+                   (goto-char (point-min))
+                   (re-search-forward "modhash = '\\([^']*\\)")
+                   (match-string 1))))
+    (if (equal modhash "")
+        (error "Can't find modhash; not logged in?")
+      modhash)))
 
 
 ;;;; Reddit mode
@@ -240,6 +258,8 @@
 
 (define-key reddit-comments-mode-map "q" 'reddit-kill)
 (define-key reddit-comments-mode-map "g" 'reddit-comments-refresh)
+(define-key reddit-comments-mode-map "a" 'reddit-comments-post)
+(define-key reddit-comments-mode-map "F" 'reddit-comments-followup)
 
 (defun reddit-comments-new-buffer (id)
   (with-current-buffer (get-buffer-create (format "*Reddit Comments %s*" id))
@@ -250,7 +270,7 @@
 
 (defun reddit-comments-refresh ()
   (interactive)
-  (url-retrieve (concat (reddit-site-root) "/info/" reddit-entry-id "/comments/.json")
+  (url-retrieve (concat (reddit-comments-site-root reddit-entry-id) "/.json")
                 'reddit-comments-refresh-cb
                 (list (current-buffer))))
 
@@ -293,6 +313,7 @@
              (reddit-alet (ups replies likes id author downs created name body)
                  (assoc-default 'data data)
                `((reddit-comment-widget
+                  :reddit-comment-id ,id
                   :node (push-button :tag ,author :format "%t\n")
                   ,@(reddit-comments-body-widgets body)
                   ,@(when replies
@@ -320,6 +341,63 @@
                  (push `(reddit-comment-line-widget ,line) widgets))))
         (forward-line))
       (nreverse widgets))))
+
+(defun reddit-comments-current-comment ()
+  (interactive)
+  (let ((widget (tree-mode-parent-current-line)))
+    (cond ((null widget) nil)
+          ((eq 'reddit-comment-line-widget (widget-type widget))
+           (widget-get widget :parent))
+          (t widget))))
+
+(defun reddit-comments-post ()
+  (interactive)
+  (reddit-post-new-buffer `(entry ,reddit-entry-id) reddit-entry-id))
+
+(defun reddit-comments-followup ()
+  (interactive)
+  (let ((comment (reddit-comments-current-comment)))
+    (if (null comment)
+        (error "No comment for followup")
+      (reddit-post-new-buffer
+       `(comment ,(widget-get comment :reddit-comment-id))
+       reddit-entry-id))))
+
+;;;; Reddit Post mode
+
+(defun reddit-post-new-buffer (parent-id entry-id)
+  (with-current-buffer (get-buffer-create (format "*Reddit Post %s*" parent-id))
+    (reddit-post-mode)
+    (set (make-local-variable 'reddit-parent-id) parent-id)
+    (set (make-local-variable 'reddit-entry-id) entry-id)
+    (set-window-buffer (split-window) (current-buffer))
+    (select-window (next-window))))
+
+(define-derived-mode reddit-post-mode markdown-mode "Reddit-Post"
+  (widen)
+  (auto-save-mode 0))
+
+(define-key reddit-post-mode-map (kbd "C-c C-q") 'reddit-kill)
+(define-key reddit-post-mode-map (kbd "C-c C-c") 'reddit-post-save)
+
+(defun reddit-post-save ()
+  (interactive)
+  (destructuring-bind (type parent-id) reddit-parent-id
+    (let ((modhash (reddit-modhash entry-id))
+          (id-string (concat (ecase type
+                               (comment "t1_")
+                               (entry "t3_"))
+                             parent-id))
+          (comment (url-hexify-string (buffer-string))))
+      (url-mark-buffer-as-dead
+       (reddit-api "comment"
+                   `(("uh" . ,modhash)
+                     ("id" . ,id-string)
+                     ("comment" . ,comment)
+                     ,@(when (eq type 'entry)
+                         `(("isroot" . "1"))))))
+      (reddit-kill)
+      (message "Posted"))))
 
 
 ;;;; Finally...
