@@ -348,11 +348,14 @@
       (nreverse widgets))))
 
 (defun reddit-comments-current-comment ()
-  (let ((widget (tree-mode-parent-current-line)))
-    (cond ((null widget) nil)
-          ((eq 'reddit-comment-line-widget (widget-type widget))
-           (widget-get widget :parent))
-          (t widget))))
+  (labels ((lookup (widget)
+             (cond ((null widget)
+                    nil)
+                   ((not (eq 'reddit-comment-widget (widget-type widget)))
+                    (lookup (widget-get widget :parent)))
+                   (t
+                    widget))))
+    (lookup (tree-mode-icon-current-line))))
 
 (defun reddit-comments-post ()
   (interactive)
