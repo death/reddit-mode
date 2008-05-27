@@ -318,6 +318,7 @@
                  (assoc-default 'data data)
                `((reddit-comment-widget
                   :reddit-comment-id ,id
+                  :reddit-author ,author
                   :node (push-button :tag ,author :format "%t\n")
                   ,@(reddit-comments-body-widgets body)
                   ,@(when replies
@@ -363,7 +364,8 @@
     (if (null comment)
         (error "No comment for followup")
       (reddit-post-new-buffer
-       `(comment ,(widget-get comment :reddit-comment-id))
+       `(comment ,(widget-get comment :reddit-comment-id)
+                 ,(widget-get comment :reddit-author))
        reddit-entry-id))))
 
 ;;;; Reddit Post mode
@@ -385,7 +387,7 @@
 
 (defun reddit-post-save ()
   (interactive)
-  (destructuring-bind (type parent-id) reddit-parent-id
+  (destructuring-bind (type parent-id author) reddit-parent-id
     (let ((modhash (reddit-modhash entry-id))
           (id-string (concat (ecase type
                                (comment reddit-kind-comment)
@@ -401,7 +403,7 @@
                      ,@(when (eq type 'entry)
                          `(("isroot" . "1"))))))
       (reddit-kill)
-      (message "Posted"))))
+      (message "Posted followup to comment by %s" author))))
 
 
 ;;;; Finally...
