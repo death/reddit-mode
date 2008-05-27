@@ -347,7 +347,6 @@
       (nreverse widgets))))
 
 (defun reddit-comments-current-comment ()
-  (interactive)
   (let ((widget (tree-mode-parent-current-line)))
     (cond ((null widget) nil)
           ((eq 'reddit-comment-line-widget (widget-type widget))
