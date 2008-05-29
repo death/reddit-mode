@@ -176,7 +176,7 @@
 (defvar reddit-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map widget-keymap)
-    (define-key map "q" 'bury-buffer)
+    (define-key map "q" 'quit-window)
     (define-key map "g" 'reddit-refresh)
     (define-key map "c" 'reddit-comments)
     (define-key map "L" 'reddit-login)
