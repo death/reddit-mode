@@ -325,7 +325,7 @@
                   ,@(reddit-comments-body-widgets body)
                   ,@(when replies
                       (reddit-comments-trees replies))))))
-            (t (error "reddit-comments-trees: unknown kind: %s" kind))))))
+            (t (warn "reddit-comments-trees: unknown kind: %s" kind))))))
 
 (defun reddit-comments-body-widgets (body)
   (with-temp-buffer
