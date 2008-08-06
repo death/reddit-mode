@@ -100,6 +100,8 @@
 
 (defun reddit-api (op data)
   (let* ((url-request-method "POST")
+         (url-request-extra-headers
+          '(("Content-Type" . "application/x-www-form-urlencoded"))) 
          (url-request-data
           (reddit-format-request-data
            (append data
