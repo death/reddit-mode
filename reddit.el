@@ -38,8 +38,8 @@
 
 ;;;; Variables
 
-(defvar reddit-root "http://reddit.com")
-(defvar reddit-api-root "http://reddit.com/api")
+(defvar reddit-root "http://www.reddit.com")
+(defvar reddit-api-root "http://www.reddit.com/api")
 (defvar reddit-site "programming")
 
 (defvar reddit-entry-format "%N. %[%T%] (%D, %C comments)\n")
