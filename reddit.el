@@ -18,8 +18,6 @@
 ;;; - other pages (e.g. what's new/browse/saved/recommended/stats/blog)
 ;;; - user pages
 ;;; - user preferences
-;;; - subreddits
-;;; - search
 ;;; - customization
 ;;; - documentation
 ;;; - menus
@@ -41,7 +39,7 @@
 
 (defvar reddit-root "http://www.reddit.com")
 (defvar reddit-api-root "http://www.reddit.com/api")
-(defvar reddit-site "programming")
+(defvar reddit-site '(main))
 
 (defvar reddit-entry-format "%N. %[%T%] (%D, %C comments)\n")
 
@@ -139,13 +137,19 @@
                  (assoc-default 'message error nil "<no message>"))
         (message "Login successful")))))
 
-(defun reddit-site-root ()
-  (if reddit-site
-      (concat reddit-root "/r/" reddit-site)
-    reddit-root))
+(defun reddit-site-json ()
+  (ecase (first reddit-site)
+    (main (concat reddit-root "/.json"))
+    (subreddit (concat reddit-root "/r/" (second reddit-site) "/.json"))
+    (search (destructuring-bind (query &optional subreddit)
+                (rest reddit-site)
+              (setq query (url-hexify-string query))
+              (if subreddit
+                  (concat reddit-root "/r/" subreddit "/search.json?q=" query)
+                (concat reddit-root "/search.json?q=" query))))))
 
 (defun reddit-comments-site-root (entry-id)
-  (concat (reddit-site-root) "/info/" entry-id "/comments"))
+  (concat reddit-root "/info/" entry-id "/comments"))
 
 (defun reddit-modhash (entry-id)
   ;; Ugly, ugly hack
@@ -165,14 +169,10 @@
 (defun reddit ()
   "Switch to Reddit buffer, creating it if necessary."
   (interactive)
-  (cond ((get-buffer "*Reddit*")
-         (switch-to-buffer "*Reddit*"))
-        (t
-         (switch-to-buffer "*Reddit*")
-         (reddit-mode)
-         (when reddit-user
-           (reddit-login reddit-user reddit-password))
-         (reddit-refresh))))
+  (when (and reddit-user
+             (not (get-buffer (reddit-buffer-name reddit-site))))
+    (reddit-login reddit-user reddit-password))
+  (reddit-new-buffer reddit-site))
 
 (defvar reddit-mode-map
   (let ((map (make-sparse-keymap)))
@@ -181,6 +181,7 @@
     (define-key map "g" 'reddit-refresh)
     (define-key map "c" 'reddit-comments)
     (define-key map "L" 'reddit-login)
+    (define-key map "S" 'reddit-search)
     map))
 
 (define-derived-mode reddit-mode nil "Reddit"
@@ -189,9 +190,30 @@
   (setq buffer-read-only t)
   (auto-save-mode 0))
 
+(defun reddit-new-buffer (site)
+  (with-current-buffer (get-buffer-create (reddit-buffer-name site))
+    (reddit-mode)
+    (switch-to-buffer (current-buffer))
+    (set (make-local-variable 'reddit-site) site)
+    (reddit-refresh)))
+
+(defun reddit-buffer-name (site)
+  (format "*Reddit %S*" site))
+
+(defun reddit-search (&optional query subreddit)
+  (interactive "MSearch: 
+MSubreddit: ")
+  (when (string= query "") (setq query nil))
+  (when (string= subreddit "") (setq subreddit nil))
+  (reddit-new-buffer
+   (cond ((and query subreddit) (list 'search query subreddit))
+         (query (list 'search query))
+         (subreddit (list 'subreddit subreddit))
+         (t '(main)))))
+
 (defun reddit-refresh ()
   (interactive)
-  (url-retrieve (concat (reddit-site-root) "/.json")
+  (url-retrieve (reddit-site-json)
                 'reddit-refresh-cb
                 (list (current-buffer))))
 
