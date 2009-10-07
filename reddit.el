@@ -224,7 +224,8 @@
   (let ((kind (assoc-default 'kind data)))
     (assert (equal reddit-kind-entry kind))
     (reddit-alet (ups saved hidden id likes score created title downs
-                      num_comments url author name clicked domain)
+                      num_comments url author name clicked domain
+                      subreddit)
         (assoc-default 'data data)
       (list 'reddit-entry
             :format reddit-entry-format
@@ -237,7 +238,8 @@
             :reddit-domain domain
             :reddit-score score
             :reddit-author author
-            :reddit-num-comments num_comments))))
+            :reddit-num-comments num_comments
+            :reddit-subreddit subreddit))))
 
 (defun reddit-entry-format (widget char)
   (case char
@@ -247,6 +249,7 @@
     (?S (insert (format "%d" (widget-get widget :reddit-score))))
     (?A (insert (widget-get widget :reddit-author)))
     (?C (insert (format "%d" (widget-get widget :reddit-num-comments))))
+    (?R (insert (widget-get widget :reddit-subreddit)))
     (t (widget-default-format-handler widget char))))
 
 
