@@ -24,6 +24,7 @@
 ;;; - documentation
 ;;; - menus
 ;;; - error checking
+;;; - handle <more comments>
 ;;; - much more...
 ;;;
 
@@ -325,7 +326,8 @@
                   ,@(reddit-comments-body-widgets body)
                   ,@(when replies
                       (reddit-comments-trees replies))))))
-            (t (warn "reddit-comments-trees: unknown kind: %s" kind))))))
+            (t (warn "reddit-comments-trees: unknown kind: %s" kind)
+               nil)))))
 
 (defun reddit-comments-body-widgets (body)
   (with-temp-buffer
