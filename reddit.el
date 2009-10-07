@@ -106,8 +106,7 @@
          (url-request-data
           (reddit-format-request-data
            (append data
-                   `(("r" . ,(or reddit-site "%20reddit.com"))
-                     ("_" . "")))))
+                   `(("_" . "")))))
          (buffer (url-retrieve-synchronously (concat reddit-api-root "/" op))))
     (when (null buffer)
       (error "Reddit API call for '%s' failed" op))
@@ -129,10 +128,9 @@
     (setq password (read-passwd "Password: " nil reddit-password)))
   (with-current-buffer
       (reddit-api "login"
-                  `(("uh" . "")
-                    ("op" . "login-main")
-                    ("user_login" . ,user)
-                    ("passwd_login" . ,password)))
+                  `(("op" . "login-main")
+                    ("user" . ,user)
+                    ("passwd" . ,password)))
     (url-mark-buffer-as-dead (current-buffer))
     (let* ((data (reddit-parse))
            (error (assoc-default 'error data)))
