@@ -1,7 +1,15 @@
-;;;; Reddit mode
-;;;
-;;; DEATH, 2008
-;;;               _     _ _ _                            _
+;;; reddit.el --- Support for the Reddit time sink
+
+;; Copyright (C) 2008 DEATH
+
+;; Author: DEATH
+;; Keywords: games
+;; Website: http://github.com/death
+
+;; This file is not part of GNU Emacs.
+
+;;; Commentary:
+
 ;;;  _ __ ___  __| | __| (_) |_      _ __ ___   ___   __| | ___
 ;;; | '__/ _ \/ _` |/ _` | | __|____| '_ ` _ \ / _ \ / _` |/ _ \
 ;;; | | |  __/ (_| | (_| | | ||_____| | | | | | (_) | (_| |  __/
@@ -25,6 +33,8 @@
 ;;; - handle <more comments>
 ;;; - much more...
 ;;;
+
+;;; Code:
 
 (require 'cl)
 (require 'thingatpt)
@@ -439,3 +449,5 @@ MSubreddit: ")
 ;;;; Finally...
 
 (provide 'reddit)
+
+;;; reddit.el ends here
