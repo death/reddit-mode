@@ -134,17 +134,17 @@
         (message "Login successful")))))
 
 (defun reddit-site-json (&optional after-param before-param)
+  (if (and after-param before-param)
+      (error "Only one param should be provided"))
   (let ((reddit-base (concat reddit-root "/.json?limit=" reddit-threads-limit))
         (reddit-subreddit-base (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-threads-limit)))
     (ecase (first reddit-site)
       (main
-       (cond ((and after-param before-param) (error "Only one param should be provided"))
-             (after-param (concat reddit-base "&after=" after-param))
+       (cond (after-param (concat reddit-base "&after=" after-param))
              (before-param (concat reddit-base "&before=" before-param))
              (t reddit-base)))
       (subreddit
-       (cond ((and after-param before-param) (error "Only one param should be provided"))
-             (after-param (concat reddit-subreddit-base "&after=" after-param))
+       (cond (after-param (concat reddit-subreddit-base "&after=" after-param))
              (before-param (concat reddit-subreddit-base "&before=" before-param))
              (t reddit-subreddit-base)))
       (search (destructuring-bind (query &optional subreddit)
