@@ -1,10 +1,16 @@
 ;;; reddit.el --- Support for the Reddit time sink
+
 ;; Copyright (C) 2008 DEATH
 ;; Copyright (C) 2015 massix
+
 ;; Authors: DEATH, massix
 ;; Keywords: games
 ;; Website: http://github.com/death http://github.com/massix
+
 ;; This file is not part of GNU Emacs.
+
+;;; Commentary:
+
 ;;;  _ __ ___  __| | __| (_) |_      _ __ ___   ___   __| | ___
 ;;; | '__/ _ \/ _` |/ _` | | __|____| '_ ` _ \ / _ \ / _` |/ _ \
 ;;; | | |  __/ (_| | (_| | | ||_____| | | | | | (_) | (_| |  __/
