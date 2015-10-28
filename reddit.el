@@ -289,7 +289,6 @@ MSubreddit: ")
                     'reddit-refresh-cb
                     (list (current-buffer))))))
 
-;; Get previous page threads
 (defun reddit-prev ()
   "Get previous page of threads"
   (interactive)
