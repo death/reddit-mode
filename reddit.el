@@ -134,29 +134,25 @@
         (message "Login successful")))))
 
 (defun reddit-site-json (&optional after-param before-param)
-  (ecase (first reddit-site)
-    (main
-     (cond ((and after-param before-param) (error "Only one param should be provided"))
-           (after-param
-            (concat reddit-root "/.json?limit=" reddit-threads-limit "&after=" after-param))
-           (before-param
-            (concat reddit-root "/.json?limit=" reddit-threads-limit "&before=" before-param))
-           (t
-            (concat reddit-root "/.json?limit=" reddit-threads-limit))))
-    (subreddit
-     (cond ((and after-param before-param) (error "Only one param should be provided"))
-           (after-param
-            (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-threads-limit "&after=" after-param))
-           (before-param
-            (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-threads-limit "&before=" before-param))
-           (t
-            (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-threads-limit))))
-    (search (destructuring-bind (query &optional subreddit)
-                (rest reddit-site)
-              (setq query (url-hexify-string query))
-              (if subreddit
-                  (concat reddit-root "/r/" subreddit "/search.json?q=" query)
-                (concat reddit-root "/search.json?q=" query))))))
+  (let ((reddit-base (concat reddit-root "/.json?limit=" reddit-threads-limit))
+        (reddit-subreddit-base (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-threads-limit)))
+    (ecase (first reddit-site)
+      (main
+       (cond ((and after-param before-param) (error "Only one param should be provided"))
+             (after-param (concat reddit-base "&after=" after-param))
+             (before-param (concat reddit-base "&before=" before-param))
+             (t reddit-base)))
+      (subreddit
+       (cond ((and after-param before-param) (error "Only one param should be provided"))
+             (after-param (concat reddit-subreddit-base "&after=" after-param))
+             (before-param (concat reddit-subreddit-base "&before=" before-param))
+             (t reddit-subreddit-base)))
+      (search (destructuring-bind (query &optional subreddit)
+                  (rest reddit-site)
+                (setq query (url-hexify-string query))
+                (if subreddit
+                    (concat reddit-root "/r/" subreddit "/search.json?q=" query)
+                  (concat reddit-root "/search.json?q=" query)))))))
 
 (defun reddit-comments-site-root (entry-id)
   (concat reddit-root "/info/" entry-id "/comments"))
