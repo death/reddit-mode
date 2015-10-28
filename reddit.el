@@ -411,12 +411,12 @@ MSubreddit: ")
 
 (defun reddit-comments-current-comment ()
   (labels ((lookup (widget)
-                   (cond ((null widget)
-                          nil)
-                         ((not (eq 'reddit-comment-widget (widget-type widget)))
-                          (lookup (widget-get widget :parent)))
-                         (t
-                          widget))))
+             (cond ((null widget)
+                    nil)
+                   ((not (eq 'reddit-comment-widget (widget-type widget)))
+                    (lookup (widget-get widget :parent)))
+                   (t
+                    widget))))
     (lookup (tree-mode-icon-current-line))))
 
 (defun reddit-comments-post ()
