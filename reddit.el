@@ -9,6 +9,27 @@
 ;;; | '__/ _ \/ _` |/ _` | | __|____| '_ ` _ \ / _ \ / _` |/ _ \
 ;;; | | |  __/ (_| | (_| | | ||_____| | | | | | (_) | (_| |  __/
 ;;; |_|  \___|\__,_|\__,_|_|\__|    |_| |_| |_|\___/ \__,_|\___|
+;;;
+;;; A lot of stuff is missing:
+;;;
+;;; - logout
+;;; - markdown
+;;; - comments: edit/delete
+;;; - submitting urls (incl. delete)
+;;; - voting urls/comments
+;;; - saving links
+;;; - other pages (e.g. what's new/browse/saved/recommended/stats/blog)
+;;; - user pages
+;;; - user preferences
+;;; - customization
+;;; - documentation
+;;; - menus
+;;; - error checking
+;;; - handle <more comments>
+;;; - much more...
+;;;
+
+;;; Code:
 
 (require 'cl)
 (require 'thingatpt)
@@ -25,12 +46,12 @@
 (defvar reddit-entry-format "%N. %[%T%] (%D, %C comments, %U upvotes)\n")
 (defvar reddit-user nil)
 (defvar reddit-password nil)
+(defvar reddit-threads-limit "30")
 (defvar reddit-entry-id nil)
 (defvar reddit-parent-id nil)
 (defvar reddit-kind-listing "Listing")
 (defvar reddit-kind-comment "t1")
 (defvar reddit-kind-entry "t3")
-(defvar reddit-default-limit "30")
 
 ;;;; Utilities
 (defmacro reddit-alet (vars alist &rest forms)
@@ -117,19 +138,19 @@
     (main
      (cond ((and after-param before-param) (error "Only one param should be provided"))
            (after-param
-            (concat reddit-root "/.json?limit=" reddit-default-limit "&after=" after-param))
+            (concat reddit-root "/.json?limit=" reddit-threads-limit "&after=" after-param))
            (before-param
-            (concat reddit-root "/.json?limit=" reddit-default-limit "&before=" before-param))
+            (concat reddit-root "/.json?limit=" reddit-threads-limit "&before=" before-param))
            (t
-            (concat reddit-root "/.json?limit=" reddit-default-limit))))
+            (concat reddit-root "/.json?limit=" reddit-threads-limit))))
     (subreddit
      (cond ((and after-param before-param) (error "Only one param should be provided"))
            (after-param
-            (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-default-limit "&after=" after-param))
+            (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-threads-limit "&after=" after-param))
            (before-param
-            (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-default-limit "&before=" before-param))
+            (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-threads-limit "&before=" before-param))
            (t
-            (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-default-limit))))
+            (concat reddit-root "/r/" (second reddit-site) "/.json?limit=" reddit-threads-limit))))
     (search (destructuring-bind (query &optional subreddit)
                 (rest reddit-site)
               (setq query (url-hexify-string query))
@@ -263,8 +284,8 @@ MSubreddit: ")
     (?U (insert (format "%d" (widget-get widget :reddit-upvotes))))
     (t (widget-default-format-handler widget char))))
 
-;; Get next page of threads
 (defun reddit-next ()
+  "Get next page of threads"
   (interactive)
   (let ((widget (widget-at)))
     (when widget
@@ -274,6 +295,7 @@ MSubreddit: ")
 
 ;; Get previous page threads
 (defun reddit-prev ()
+  "Get previous page of threads"
   (interactive)
   (let ((widget (widget-at)))
     (when widget
@@ -307,7 +329,6 @@ MSubreddit: ")
 
 (defun reddit-comments-refresh ()
   (interactive)
-  (message "Retrieving comments for %s" (concat (reddit-comments-site-root reddit-entry-id) "/.json"))
   (url-retrieve (concat (reddit-comments-site-root reddit-entry-id) "/.json")
                 'reddit-comments-refresh-cb
                 (list (current-buffer))))
@@ -321,7 +342,7 @@ MSubreddit: ")
   (with-current-buffer buffer
     (let ((inhibit-read-only t))
       (erase-buffer)
-      ;; The first element of data contains the reddit entry. The
+      ;; The first element of data contains the reddit entry.  The
       ;; second element of data contains all the comments.
       (if (or (not (arrayp data))
               (< (length data) 2))
