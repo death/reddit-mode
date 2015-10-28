@@ -45,21 +45,29 @@
 (require 'tree-mode)
 (require 'markdown-mode)
 
+
 ;;;; Variables
+
 (defvar reddit-root "http://www.reddit.com")
 (defvar reddit-api-root "http://www.reddit.com/api")
 (defvar reddit-site '(main))
+
 (defvar reddit-entry-format "%N. %[%T%] (%D, %C comments, %U upvotes)\n")
+
 (defvar reddit-user nil)
 (defvar reddit-password nil)
+
 (defvar reddit-threads-limit "30")
 (defvar reddit-entry-id nil)
 (defvar reddit-parent-id nil)
+
 (defvar reddit-kind-listing "Listing")
 (defvar reddit-kind-comment "t1")
 (defvar reddit-kind-entry "t3")
 
+
 ;;;; Utilities
+
 (defmacro reddit-alet (vars alist &rest forms)
   (let ((alist-var (make-symbol "alist")))
     `(let* ((,alist-var ,alist)
@@ -93,7 +101,9 @@
           do (insert delim key "=" value))
     (buffer-string)))
 
+
 ;;;; Reddit-specific utilities
+
 (defun reddit-parse ()
   (goto-char (point-min))
   (re-search-forward "^$")
@@ -175,7 +185,9 @@
         (error "Can't find modhash; not logged in?")
       modhash)))
 
+
 ;;;; Reddit mode
+
 (defun reddit ()
   "Switch to Reddit buffer, creating it if necessary."
   (interactive)
@@ -305,6 +317,7 @@ MSubreddit: ")
                     (list (current-buffer))))))
 
 ;;;; Reddit Comments mode
+
 (defun reddit-comments ()
   (interactive)
   (let ((widget (widget-at)))
@@ -434,7 +447,9 @@ MSubreddit: ")
                  ,(widget-get comment :reddit-author))
        reddit-entry-id))))
 
+
 ;;;; Reddit Post mode
+
 (defun reddit-post-new-buffer (parent-id entry-id)
   (with-current-buffer (get-buffer-create (format "*Reddit Post %s*" parent-id))
     (reddit-post-mode)
@@ -470,7 +485,9 @@ MSubreddit: ")
       (reddit-kill)
       (message "Posted followup to comment by %s" author))))
 
+
 ;;;; Finally...
+
 (provide 'reddit)
 
 ;;; reddit.el ends here
