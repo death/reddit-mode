@@ -5,6 +5,7 @@
 
 ;; Authors: DEATH, massix
 ;; Keywords: games
+;; License: MIT
 ;; Website: http://github.com/death http://github.com/massix
 
 ;; This file is not part of GNU Emacs.
