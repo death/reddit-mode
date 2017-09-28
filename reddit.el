@@ -168,7 +168,7 @@
                     (rest reddit-site)
                   (setq query (url-hexify-string query))
                   (if subreddit
-                      (concat reddit-root "/r/" subreddit "/search.json?q=" query)
+                      (concat reddit-root "/r/" subreddit "/search.json?&restrict_sr=true&q=" query)
                     (concat reddit-root "/search.json?q=" query))))))))
 
 (defun reddit-comments-site-root (entry-id)
